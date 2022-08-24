@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -109,7 +110,8 @@ static std::vector<std::pair<bounding, bo_share>> xdpu_workspace_bo;
 
 static uint32_t read32_dpu_reg(xclDeviceHandle dpu_handle, uint64_t offset) {
   uint32_t val;
-  xclRead(dpu_handle, XCL_ADDR_KERNEL_CTRL, offset, (void *)(&val), 4);
+  //xclRead(dpu_handle, XCL_ADDR_KERNEL_CTRL, offset, (void *)(&val), 4);
+  val = 0;
   return val;
 }
 static bool check_exist(int regid, std::vector<int> regids) {
@@ -304,26 +306,29 @@ xclBufferHandle  DpuCloudController::get_xrt_bo(void* data, int size, unsigned h
 void DpuCloudController::init_graph(vector<unsigned> hbmw, vector<unsigned> hbmc, xir::Attrs* attrs ) {
 
   auto handle = contexts_[0]->get_dev_handle();
-  auto cu_base_addr = handle_->get_device_info().cu_base_addr;
-  uint64_t fingerprint = model_->get_fingerprint();
+//  auto cu_base_addr = handle_->get_device_info().cu_base_addr;
+//  uint64_t fingerprint = model_->get_fingerprint();
 
-  if(ENV_PARAM(XLNX_ENABLE_FINGERPRINT_CHECK)) {
-      uint32_t low = read32_dpu_reg(handle,  cu_base_addr + VERSION_CODE_L);
-      uint32_t high = read32_dpu_reg(handle,  cu_base_addr + VERSION_CODE_H);
-      uint64_t version = high;
-      version = (version << 32) + low;
-      LOG_IF(INFO, ENV_PARAM(DEBUG_DPU_CONTROLLER))
-        << "DPU fingerprint: "  //
-        << version      //
-        << " "       //
-        << fingerprint      //
-        ;
-      if (version != fingerprint)
-        throw std::runtime_error("Error: subgraph's version is mismatch with xclbin");
-
-  }
+//  if(ENV_PARAM(XLNX_ENABLE_FINGERPRINT_CHECK)) {
+//      uint32_t low = read32_dpu_reg(handle,  cu_base_addr + VERSION_CODE_L);
+//      uint32_t high = read32_dpu_reg(handle,  cu_base_addr + VERSION_CODE_H);
+//      uint64_t version = high;
+//      version = (version << 32) + low;
+//      LOG_IF(INFO, ENV_PARAM(DEBUG_DPU_CONTROLLER))
+//        << "DPU fingerprint: "  //
+//        << version      //
+//        << " "       //
+//        << fingerprint      //
+//        ;
+//      if (version != fingerprint)
+//        throw std::runtime_error("Error: subgraph's version is mismatch with xclbin");
+//
+//  }
   
-  batch_size_ = read32_dpu_reg(handle,  cu_base_addr + DPUREG_ENGINE_NUM);
+//  batch_size_ = read32_dpu_reg(handle,  cu_base_addr + DPUREG_ENGINE_NUM);
+  auto bs_str = std::getenv("XLNX_VART_FIRMWARE_BATCH_SIZE");
+  if (!bs_str) throw::std::runtime_error("Error: Set XLNX_VART_FIRMWARE_BATCH_SIZE");
+  batch_size_ = std::stoi(bs_str);
   if(attrs != nullptr) {
     if (!attrs->has_attr("__batch__")) {
       attrs->set_attr<size_t>("__batch__", batch_size_);
